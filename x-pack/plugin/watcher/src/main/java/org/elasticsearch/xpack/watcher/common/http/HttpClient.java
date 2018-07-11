@@ -46,6 +46,7 @@ import org.elasticsearch.xpack.watcher.common.http.auth.HttpAuthRegistry;
 
 import javax.net.ssl.HostnameVerifier;
 import java.io.ByteArrayOutputStream;
+import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
@@ -56,7 +57,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class HttpClient extends AbstractComponent {
+public class HttpClient extends AbstractComponent implements Closeable {
 
     private static final String SETTINGS_SSL_PREFIX = "xpack.http.ssl.";
 
@@ -66,6 +67,7 @@ public class HttpClient extends AbstractComponent {
     private final TimeValue defaultConnectionTimeout;
     private final TimeValue defaultReadTimeout;
     private final ByteSizeValue maxResponseSize;
+    private final Integer maxConnections;
 
     public HttpClient(Settings settings, HttpAuthRegistry httpAuthRegistry, SSLService sslService) {
         super(settings);
@@ -74,6 +76,7 @@ public class HttpClient extends AbstractComponent {
         this.defaultReadTimeout = HttpSettings.READ_TIMEOUT.get(settings);
         this.maxResponseSize = HttpSettings.MAX_HTTP_RESPONSE_SIZE.get(settings);
         this.settingsProxy = getProxyFromSettings();
+        this.maxConnections = HttpSettings.MAX_CONNECTIONS.get(settings);
 
         HttpClientBuilder clientBuilder = HttpClientBuilder.create();
 
@@ -83,6 +86,8 @@ public class HttpClient extends AbstractComponent {
         HostnameVerifier verifier = isHostnameVerificationEnabled ? new DefaultHostnameVerifier() : NoopHostnameVerifier.INSTANCE;
         SSLConnectionSocketFactory factory = new SSLConnectionSocketFactory(sslService.sslSocketFactory(sslSettings), verifier);
         clientBuilder.setSSLSocketFactory(factory);
+        clientBuilder.setMaxConnPerRoute(this.maxConnections);
+        clientBuilder.setMaxConnTotal(this.maxConnections);
 
         client = clientBuilder.build();
     }
@@ -249,6 +254,11 @@ public class HttpClient extends AbstractComponent {
         } catch (URISyntaxException e) {
             throw new IllegalArgumentException(e);
         }
+    }
+
+    @Override
+    public void close() throws IOException {
+        client.close();
     }
 
     /**

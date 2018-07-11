@@ -22,11 +22,14 @@ public class HttpSettings {
 
     private static final TimeValue DEFAULT_READ_TIMEOUT = TimeValue.timeValueSeconds(10);
     private static final TimeValue DEFAULT_CONNECTION_TIMEOUT = DEFAULT_READ_TIMEOUT;
+    private static final int DEFAULT_MAX_CONNECTIONS = 500;
 
     static final Setting<TimeValue> READ_TIMEOUT = Setting.timeSetting("xpack.http.default_read_timeout",
             DEFAULT_READ_TIMEOUT, Property.NodeScope);
     static final Setting<TimeValue> CONNECTION_TIMEOUT = Setting.timeSetting("xpack.http.default_connection_timeout",
             DEFAULT_CONNECTION_TIMEOUT, Property.NodeScope);
+    static final Setting<Integer> MAX_CONNECTIONS = Setting.intSetting("xpack.http.max_connections",
+        DEFAULT_MAX_CONNECTIONS, 500, Integer.MAX_VALUE, Property.NodeScope);
 
     private static final String PROXY_HOST_KEY = "xpack.http.proxy.host";
     private static final String PROXY_PORT_KEY = "xpack.http.proxy.port";
@@ -54,6 +57,7 @@ public class HttpSettings {
         settings.add(PROXY_PORT);
         settings.add(PROXY_SCHEME);
         settings.add(MAX_HTTP_RESPONSE_SIZE);
+        settings.add(MAX_CONNECTIONS);
         return settings;
     }
 

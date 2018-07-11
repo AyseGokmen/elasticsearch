@@ -30,6 +30,7 @@ import org.elasticsearch.common.settings.SettingsFilter;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.util.concurrent.EsExecutors;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
+import org.elasticsearch.core.internal.io.IOUtils;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.env.NodeEnvironment;
 import org.elasticsearch.index.IndexModule;
@@ -243,6 +244,8 @@ public class Watcher extends Plugin implements ActionPlugin, ScriptPlugin {
     protected final boolean enabled;
     protected final Environment env;
 
+    protected HttpClient httpClient;
+
     public Watcher(Settings settings) {
         this.settings = settings;
         this.enabled = XPackSettings.WATCHER_ENABLED.get(settings);
@@ -287,7 +290,7 @@ public class Watcher extends Plugin implements ActionPlugin, ScriptPlugin {
         // TODO: add more auth types, or remove this indirection
         HttpAuthRegistry httpAuthRegistry = new HttpAuthRegistry(httpAuthFactories);
         HttpRequestTemplate.Parser httpTemplateParser = new HttpRequestTemplate.Parser(httpAuthRegistry);
-        final HttpClient httpClient = new HttpClient(settings, httpAuthRegistry, getSslService());
+        this.httpClient = new HttpClient(settings, httpAuthRegistry, getSslService());
 
         // notification
         EmailService emailService = new EmailService(settings, cryptoService, clusterService.getClusterSettings());
@@ -631,5 +634,10 @@ public class Watcher extends Plugin implements ActionPlugin, ScriptPlugin {
     @Override
     public List<ScriptContext> getContexts() {
         return Arrays.asList(Watcher.SCRIPT_SEARCH_CONTEXT, Watcher.SCRIPT_EXECUTABLE_CONTEXT, Watcher.SCRIPT_TEMPLATE_CONTEXT);
+    }
+
+    @Override
+    public void close() throws IOException {
+        IOUtils.closeWhileHandlingException(this.httpClient);
     }
 }

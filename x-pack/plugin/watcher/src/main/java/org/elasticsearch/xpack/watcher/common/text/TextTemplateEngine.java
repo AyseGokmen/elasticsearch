@@ -16,8 +16,11 @@ import org.elasticsearch.xpack.watcher.Watcher;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.regex.Pattern;
 
 public class TextTemplateEngine extends AbstractComponent {
+
+    private static final Pattern PATTERN_MUSTACHE = Pattern.compile("\\{\\{\\s*[\\w\\.]+\\s*\\}\\}");
 
     private final ScriptService service;
 
@@ -30,8 +33,13 @@ public class TextTemplateEngine extends AbstractComponent {
         if (textTemplate == null) {
             return null;
         }
-
+        // Do not compile if there is no mustache pattern in string
         String template = textTemplate.getTemplate();
+        boolean mustache = PATTERN_MUSTACHE.matcher(template).find();
+        if (!mustache) {
+            return template;
+        }
+
         String mediaType = compileParams(detectContentType(template));
         template = trimContentType(textTemplate);
 
